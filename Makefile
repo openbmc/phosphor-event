@@ -4,6 +4,7 @@ OBJS_TEST = $(TEST).o
 EXE     = event_messaged
 
 OBJS    = $(EXE).o   \
+          list.o 	 \
 
 
 DEPPKGS = libsystemd

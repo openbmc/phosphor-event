@@ -27,7 +27,13 @@ typedef struct messageEntry_t {
 
 void message_storage_delete(messageEntry_t *m) {
 
-	printf("Attempting to delete /org/openbmc/records/events/%d\n", m->logid);
+	char *path;
+	int r;
+
+	asprintf(&path, "/org/openbmc/records/events/%d", m->logid);
+
+
+	printf("Attempting to delete %s\n", path);
 
 	free(m->message);
 	free(m->severity);
@@ -35,9 +41,17 @@ void message_storage_delete(messageEntry_t *m) {
 	free(m->association);
 	free(m->debugbytes);
 
+	
 	sd_bus_slot_unref(m->messageslot);
 	sd_bus_slot_unref(m->deleteslot);
 
+	sd_bus_emit_object_removed(bus, path);
+	if (r < 0) {
+		fprintf(stderr, "Failed to emit the 2nd delete  signal %s\n", strerror(-r));
+		return;
+	}
+
+	
 	free(m);
 
 	return;
@@ -237,6 +251,22 @@ int create_new_log_event(void *userdata,
 	                             "org.openbmc.Object.Delete",
 	                             recordlog_delete_vtable,
 	                             node);
+
+	printf("Event Log added %s\n", loglocation);
+
+	r = sd_bus_add_object_manager(bus, NULL, "/org/openbmc/records/events") ;
+	if (r < 0) {
+		fprintf(stderr, "Object Manager failure  %s\n", strerror(-r));
+		return 0;
+	}
+
+	r = sd_bus_emit_object_added(bus, loglocation);
+	if (r < 0) {
+		fprintf(stderr, "Failed to emit signal %s\n", strerror(-r));
+		return 0;
+	}
+
+
 
 	return logid;
 }

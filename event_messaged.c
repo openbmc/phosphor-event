@@ -49,17 +49,16 @@ void message_storage_delete(messageEntry_t *m) {
 	free(m->association);
 	free(m->debugbytes);
 
-	
-	sd_bus_slot_unref(m->messageslot);
-	sd_bus_slot_unref(m->deleteslot);
 
-	sd_bus_emit_object_removed(bus, path);
+	r = sd_bus_emit_object_removed(bus, path);
 	if (r < 0) {
-		fprintf(stderr, "Failed to emit the 2nd delete  signal %s\n", strerror(-r));
+		fprintf(stderr, "Failed to emit the delete signal %s\n", strerror(-r));
 		return;
 	}
 
-	
+	sd_bus_slot_unref(m->messageslot);
+	sd_bus_slot_unref(m->deleteslot);
+
 	free(m);
 
 	return;

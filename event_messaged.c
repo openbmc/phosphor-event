@@ -10,6 +10,14 @@ sd_bus *bus = NULL;
 List *glist;
 
 
+int create_new_log_event(void *userdata,
+                         const char *message,
+                         const char *severity,
+                         const char *association,
+                         const char *reportedby,
+                         uint8_t *p,
+                         size_t n);
+
 typedef struct messageEntry_t {
 	char    *message;
 	char    *severity;
@@ -17,7 +25,7 @@ typedef struct messageEntry_t {
 	char    *association;
 	uint8_t *debugbytes;
 	size_t   debuglength;
-	uint16_t logid;
+	size_t   logid;
 
 	sd_bus_slot *messageslot;
 	sd_bus_slot *deleteslot;
@@ -64,7 +72,7 @@ void message_add(messageEntry_t **n,
                 const char *severity,
                 const char *association,
                 const char *reportedby,
-                uint16_t     logid,
+                size_t      logid,
                 uint8_t    *data,
                 size_t      datalen)
 {
@@ -138,7 +146,7 @@ static int method_accept_host_message(sd_bus_message *m,
 		return r;
 	}
 
-	r = create_new_log_event(userdata, message, severity, association, "Host", p, n);
+	create_new_log_event(userdata, message, severity, association, "Host", p, n);
 
 	return sd_bus_reply_method_return(m, "q", g_logid);
 }
@@ -208,7 +216,7 @@ static const sd_bus_vtable recordlog_delete_vtable[] = {
 	SD_BUS_VTABLE_END
 };
 
-int get_new_log_number() {
+uint16_t get_new_log_number() {
 	return ++g_logid;
 }
 
@@ -223,7 +231,7 @@ int create_new_log_event(void *userdata,
 	int r;
 	messageEntry_t *m;
 	Node *node;
-	int logid = get_new_log_number();
+	uint16_t logid = get_new_log_number();
 
 
 	snprintf(loglocation, sizeof(loglocation), "/org/openbmc/records/events/%d", logid);

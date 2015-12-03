@@ -194,7 +194,7 @@ static const sd_bus_vtable recordlog_vtable[] = {
 	SD_BUS_VTABLE_START(0),
 	SD_BUS_METHOD("acceptHostMessage", "sssay", "q", method_accept_host_message, SD_BUS_VTABLE_UNPRIVILEGED),
 	SD_BUS_METHOD("acceptTestMessage", NULL, "q", method_accept_test_message, SD_BUS_VTABLE_UNPRIVILEGED),
-	SD_BUS_METHOD("Clear", NULL, NULL, method_clearall, SD_BUS_VTABLE_UNPRIVILEGED),
+	SD_BUS_METHOD("Clear", NULL, "q", method_clearall, SD_BUS_VTABLE_UNPRIVILEGED),
 	SD_BUS_VTABLE_END
 };
 

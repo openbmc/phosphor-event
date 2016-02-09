@@ -1,27 +1,35 @@
-TEST      = listfunc
-OBJS_TEST = $(TEST).o
 
-EXE     = event_messaged
+CHECK      = check
 
-OBJS    = $(EXE).o   \
-          list.o 	 \
+EXE       = event_messaged
+EXE_OBJS  = $(EXE).o message.o event_messaged_sdbus.o list.o
 
+OBJS_CHECK = test.o message.o
+
+CPPFLAGS  += -g -fpic -Wall -std=c++11
 
 DEPPKGS = libsystemd
-CC      ?= $(CROSS_COMPILE)gcc
 INCLUDES += $(shell pkg-config --cflags $(DEPPKGS)) 
 LIBS += $(shell pkg-config --libs $(DEPPKGS))
+
+
 
 all: $(EXE)
 
 %.o : %.c 
 	$(CC) -c $< $(CFLAGS) $(INCLUDES) -o $@
 
-$(EXE): $(OBJS)
-	$(CC) $^ $(LDFLAGS) $(LIBS) -o $@
+%.o : %.C
+	$(CXX) -c $< $(CPPFLAGS) -o $@
 
-$(TEST): $(OBJS_TEST)
-	$(CC) $^ $(LDFLAGS) $(LIBS) -o $@
+
+$(EXE): $(EXE_OBJS)
+	$(CXX) $^ $(LDFLAGS) $(LIBS) -o $@
+
+
+$(CHECK): $(OBJS_CHECK)
+	$(CXX) $^ $(LDFLAGS) -o $@
+	./$(CHECK)
 
 clean:
-	rm -f $(OBJS) $(EXE) *.o *.d
+	rm -f $(CHECK) *.o *.so $(EXE)

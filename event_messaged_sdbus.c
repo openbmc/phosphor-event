@@ -4,7 +4,6 @@
 #include <stddef.h>
 #include <systemd/sd-bus.h>
 #include "message.H"
-#include "list.h"
 #include "event_messaged_sdbus.h"
 #include <syslog.h>
 
@@ -26,11 +25,8 @@
 
 sd_bus      *bus   = NULL;
 sd_bus_slot *slot  = NULL;
-List        *glist = NULL;
 
 event_record_t *gCachedRec = NULL;
-
-static int remove_log_from_dbus(Node *node);
 
 typedef struct messageEntry_t {
 
@@ -41,6 +37,7 @@ typedef struct messageEntry_t {
 
 } messageEntry_t;
 
+static int remove_log_from_dbus(messageEntry_t *node);
 
 static void message_entry_close(messageEntry_t *m) {
 	free(m);
@@ -242,17 +239,35 @@ static int method_accept_test_message(sd_bus_message *m,
 	return sd_bus_reply_method_return(m, "q", logid);
 }
 
+static int finish_delete_log(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
+	return 0;
+}
 
 static int method_clearall(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
-	Node *n;
-	messageEntry_t *p;
-	
-	// This deletes one log at a time and seeing how the
-	// list shrinks using the NULL works fine here
-	while (n = list_get_next_node(glist, NULL)) {
-		p = (messageEntry_t *) n->data;
-		message_delete_log(p->em, p->logid);
-		remove_log_from_dbus(n);
+	event_manager *em = (event_manager *) userdata;
+	uint16_t logid;
+	char buffer[32];
+	int r;
+	sd_bus_message *reply;
+
+	message_refresh_events(em);
+
+	while (logid = message_next_event(em)) {
+		snprintf(buffer, sizeof(buffer), "/org/openbmc/records/events/%d", logid);
+
+		r = sd_bus_call_method_async(bus,
+									 NULL,
+									 "org.openbmc.records.events",
+									 buffer,
+									 "org.openbmc.Object.Delete",
+									 "delete",
+									 finish_delete_log,
+									 NULL,
+									 NULL);
+		if (r < 0) {
+			fprintf(stderr, "sd_bus_call_method_async Failed : %s\n", strerror(-r));
+			return -1;
+		}
 	}
 
 	return sd_bus_reply_method_return(m, "q", 0);
@@ -261,11 +276,10 @@ static int method_clearall(sd_bus_message *m, void *userdata, sd_bus_error *ret_
 
 static int method_deletelog(sd_bus_message *m, void *userdata, sd_bus_error *ret_error) {
 
-	Node *n = (Node*)userdata;
-	messageEntry_t *p = (messageEntry_t *) n->data;
+	messageEntry_t *p = (messageEntry_t *) userdata;
 
 	message_delete_log(p->em, p->logid);
-	remove_log_from_dbus(n);
+	remove_log_from_dbus(p);
 	return sd_bus_reply_method_return(m, "q", 0);
 }
 
@@ -297,9 +311,8 @@ static const sd_bus_vtable recordlog_delete_vtable[] = {
 	SD_BUS_VTABLE_END
 };
 
-static int remove_log_from_dbus(Node *node) {
+static int remove_log_from_dbus(messageEntry_t *p) {
 
-	messageEntry_t *p = (messageEntry_t *) node->data;
 	int r;
 	char buffer[32];
 
@@ -316,7 +329,6 @@ static int remove_log_from_dbus(Node *node) {
 	sd_bus_slot_unref(p->deleteslot);
 
 	message_entry_close(p);
-	list_delete_node(glist, node);
 
 	return 0;
 }
@@ -326,14 +338,10 @@ int send_log_to_dbus(event_manager *em, const uint16_t logid) {
 	char loglocation[64];
 	int r;
 	messageEntry_t *m;
-	Node *node;
-
 
 	snprintf(loglocation, sizeof(loglocation), "/org/openbmc/records/events/%d", logid);
 
 	message_entry_new(&m, logid, em);
-
-	node = list_add_node(glist, m);
 
 	r = sd_bus_add_object_vtable(bus,
 	                             &m->messageslot,
@@ -344,7 +352,6 @@ int send_log_to_dbus(event_manager *em, const uint16_t logid) {
 	if (r < 0) {
 		fprintf(stderr, "Failed to acquire service name: %s %s\n", loglocation, strerror(-r));
 		message_entry_close(m);
-		list_delete_last_node(glist);
 		return 0;
 	}
 
@@ -353,7 +360,7 @@ int send_log_to_dbus(event_manager *em, const uint16_t logid) {
 	                             loglocation,
 	                             "org.openbmc.Object.Delete",
 	                             recordlog_delete_vtable,
-	                             node);
+	                             m);
 	
 	printf("Event Log added %s\n", loglocation);
 
@@ -398,7 +405,6 @@ int build_bus(event_manager *em) {
 
 	int r = 0;
 
-	glist = list_create();
 	/* Connect to the system bus */
 	r = sd_bus_open_system(&bus);
 	if (r < 0) {

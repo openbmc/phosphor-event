@@ -6,6 +6,13 @@ const char *path_to_messages = "/var/lib/obmc/events";
 
 using namespace std;
 
+void message_refresh_events(event_manager *em) {
+    em->next_log_refresh();
+    return;
+}
+uint16_t message_next_event(event_manager *em) {
+    return em->next_log();
+}
 
 uint16_t message_create_new_log_event(event_manager *em, event_record_t *rec) {
     return em->create(rec);

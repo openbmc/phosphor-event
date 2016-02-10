@@ -81,7 +81,8 @@ uint16_t message_create_new_log_event(event_manager *em, event_record_t *rec);
 int      message_load_log(event_manager *em, uint16_t logid, event_record_t **rec);
 void     message_free_log(event_manager *em, event_record_t *rec);
 int      message_delete_log(event_manager *em, uint16_t logid);
-
+void     message_refresh_events(event_manager *em);
+uint16_t message_next_event(event_manager *em);
 #ifdef __cplusplus
 }
 #endif

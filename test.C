@@ -13,22 +13,21 @@ string eventspath = "./events";
 #define ASSERT(a,b,c)  if(b!=c) {cout << "ASSERT ERROR: line " << __LINE__ << endl; exit(1);} else { cout << "Passed: " << a << endl;}
 
 void build_event_record(event_record_t *rec,
-						const char *message,
-                        const char *severity,
-                        const char *association,
-                        const char *reportedby,
-                        const uint8_t *p,
-                        size_t n) {
+			const char *message,
+			const char *severity,
+			const char *association,
+			const char *reportedby,
+			const uint8_t *p,
+			size_t n)
+{
+	rec->message     = (char*) message;
+	rec->severity    = (char*) severity;
+	rec->association = (char*) association;
+	rec->reportedby  = (char*) reportedby;
+	rec->p           = (uint8_t*) p;
+	rec->n           = n;
 
-
-    rec->message     = (char*) message;
-    rec->severity    = (char*) severity;
-    rec->association = (char*) association;
-    rec->reportedby  = (char*) reportedby;
-    rec->p           = (uint8_t*) p;
-    rec->n           = n;
-
-    return;
+	return;
 }
 
 int main(int argc, char *argv[]) {
@@ -105,10 +104,6 @@ int main(int argc, char *argv[]) {
 
 	event_manager b(eventspath);
 	ASSERT("init next log with 1 log", b.next_log(), 1);
-
-
-
-
 
 	return 0;
 }

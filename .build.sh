@@ -16,8 +16,9 @@ EOF
 docker pull ubuntu:15.10
 docker build -t openbmc/phosphor-event - <<< "${Dockerfile}"
 
-gcc --version
 
+docker run --rm=true --user="${USER}" \
+ -w "${PWD}" -v "${HOME}":"${HOME}" openbmc/phosphor-event gcc --version
 docker run --rm=true --user="${USER}" \
  -w "${PWD}" -v "${HOME}":"${HOME}" openbmc/phosphor-event make
 docker run --rm=true --user="${USER}" \

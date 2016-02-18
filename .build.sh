@@ -20,3 +20,5 @@ gcc --version
 
 docker run --rm=true --user="${USER}" \
  -w "${PWD}" -v "${HOME}":"${HOME}" openbmc/phosphor-event make
+docker run --rm=true --user="${USER}" \
+ -w "${PWD}" -v "${HOME}":"${HOME}" openbmc/phosphor-event make check

@@ -2,7 +2,7 @@
 CHECK      = check
 
 EXE       = event_messaged
-EXE_OBJS  = $(EXE).o message.o event_messaged_sdbus.o list.o
+EXE_OBJS  = $(EXE).o message.o event_messaged_sdbus.o
 
 OBJS_CHECK = test.o message.o
 

@@ -1,7 +1,7 @@
 #include <stddef.h>
 
 #ifdef __cplusplus
-extern "C"  {
+extern "C" {
 #endif
 	int start_event_monitor(void);
 	int build_bus(event_manager *em);
@@ -10,5 +10,3 @@ extern "C"  {
 #ifdef __cplusplus
 }
 #endif
-
-

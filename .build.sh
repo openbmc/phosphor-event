@@ -4,7 +4,7 @@ set -ex
 
 Dockerfile=$(cat << EOF
 FROM ubuntu:15.10
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get upgrade -yy
+RUN DEBIAN_FRONTEND=noninteractive apt-get update
 RUN DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -yy \
 	make gcc g++ libsystemd-dev libc6-dev pkg-config
 RUN groupadd -g ${GROUPS} ${USER} && useradd -d ${HOME} -m -u ${UID} -g ${GROUPS} ${USER}

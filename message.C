@@ -73,10 +73,12 @@ bool event_manager::is_file_a_log(string str)
 	f.open( buffer.str(), ios::binary);
 
 	if (!f.good()) {
+		f.close();
 		return 0;
 	}
 
 	f.read((char*)&hdr, sizeof(hdr));
+	f.close();
 
 	if (hdr.eyecatcher != g_eyecatcher)
 		return 0;
@@ -218,6 +220,7 @@ uint16_t event_manager::create_log_event(event_record_t *rec)
 	myfile.write((char*) rec->association, hdr.associationlen);
 	myfile.write((char*) rec->reportedby, hdr.reportedbylen);
 	myfile.write((char*) rec->p, hdr.debugdatalen);
+	myfile.flush();
 	myfile.close();
 
 	logcount++;

@@ -29,20 +29,33 @@ void build_event_record(event_record_t *rec,
 	return;
 }
 
+void setup(void)
+{
+	char *cmd;
+
+	asprintf(&cmd, "exec rm -r %s 2> /dev/null", eventspath.c_str());
+	system(cmd);
+	free(cmd);
+
+	asprintf(&cmd, "exec mkdir  %s 2> /dev/null", eventspath.c_str());
+	system(cmd);
+	free(cmd);
+
+	return;
+}
+
 int main(int argc, char *argv[])
 {
 	uint8_t p[] = {0x3, 0x32, 0x34, 0x36};
 	event_record_t rec, *prec;
 	string s;
 
-
-	system("exec rm -r ./events/* 2> /dev/null");
+	setup();
 
 	event_manager m(eventspath);
 
 	assert(m.get_managed_size() == 0);
 
-	assert(m.next_log() == 3);
 	assert(m.next_log() == 0);
 	m.next_log_refresh();
 	assert(m.next_log() == 0);

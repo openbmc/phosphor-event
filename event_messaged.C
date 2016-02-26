@@ -36,9 +36,13 @@ int message_delete_log(event_manager *em, uint16_t logid)
 int load_existing_events(event_manager *em)
 {
 	uint16_t id;
+	event_record_t *rec;
 
 	while ( (id = em->next_log()) != 0) {
-		send_log_to_dbus(em, id);
+
+		em->open(id, &rec);
+		send_log_to_dbus(em, id, rec->association);
+		em->close(rec);
 	}
 
 	return 0;

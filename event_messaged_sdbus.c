@@ -99,7 +99,7 @@ static int prop_message_assoc(sd_bus *bus,
 	messageEntry_t *m = (messageEntry_t*) userdata;
 	event_record_t *rec;
 	char *p;
-	char *token;
+	char *token, *saveptr;
 
 	rec = message_record_open(m->em, m->logid);
 	if (!rec) {
@@ -110,9 +110,13 @@ static int prop_message_assoc(sd_bus *bus,
 		return -1;
 	}
 
-	p = rec->association;
+	/* strtok manipulates a string.  That means if any caching was done   */
+	/* then the original string would get messed up.  To avoid that since */
+	/* I know there is caching done simple make a copy and mess with that */
+	asprintf(&p, "%s", rec->association);
 
-	token = strtok(p, " ");
+	token = strtok_r(p, " ", &saveptr);
+
 	if (token) {
 		r = sd_bus_message_open_container(reply, 'a', "(sss)");
 		if (r < 0) {
@@ -120,17 +124,18 @@ static int prop_message_assoc(sd_bus *bus,
 		}
 
 		while(token) {
-
 			r = sd_bus_message_append(reply, "(sss)", "fru", "event", token);
 			if (r < 0) {
 				fprintf(stderr,"Error adding properties for %s to reply %s\n", token, strerror(-r));
 			}
 
-			token = strtok(NULL, " ");
+			token = strtok_r(NULL, " ", &saveptr);
 		}
 
 		r = sd_bus_message_close_container(reply);
 	}
+
+	free(p);
 
 	return r;
 }

@@ -12,6 +12,7 @@
 #include <time.h>
 #include <stddef.h>
 #include <cstdio>
+#include <syslog.h>
 
 const uint32_t g_eyecatcher = 0x4F424D43; // OBMC
 const uint16_t g_version    = 1;
@@ -29,14 +30,21 @@ struct logheader_t {
 	uint16_t debugdatalen;
 };
 
+size_t get_file_size(string fn);
 
-event_manager::event_manager(string path)
+
+event_manager::event_manager(string path, size_t reqmaxsize)
 {
 	uint16_t x;
 	eventpath = path;
 	latestid = 0;
 	dirp = NULL;
 	logcount = 0;
+	maxsize = -1;
+	currentsize = 0;
+
+	if (reqmaxsize)
+		maxsize = reqmaxsize;
 
 	// examine the files being managed and advance latestid to that value
 	while ( (x = next_log()) ) {
@@ -55,6 +63,15 @@ event_manager::~event_manager()
 
 	return;
 }
+
+
+bool event_manager::is_logid_a_log(uint16_t logid)
+{
+	std::ostringstream buffer;
+	buffer  << int(logid);
+	return is_file_a_log(buffer.str());
+}
+
 
 bool event_manager::is_file_a_log(string str)
 {
@@ -161,6 +178,18 @@ inline uint16_t getlen(const char *s)
 }
 
 
+size_t get_file_size(string fn)
+{
+	ifstream f;
+	size_t len=0;
+
+	f.open(fn, ios::in|ios::binary|ios::ate);
+	len = f.tellg();
+	f.close();
+	return (len);
+}
+
+
 size_t event_manager::get_managed_size(void)
 {
 	DIR *dirp;
@@ -178,13 +207,9 @@ size_t event_manager::get_managed_size(void)
 			string str(ent->d_name);
 
 			if (is_file_a_log(str)) {
-
 				buffer.str("");
 				buffer << eventpath << "/" << str.c_str();
-
-				f.open(buffer.str() , ios::in|ios::binary|ios::ate);
-				db_size += f.tellg();
-				f.close();
+				db_size += get_file_size(buffer.str());
 			}
 		}
 	}
@@ -199,6 +224,7 @@ uint16_t event_manager::create_log_event(event_record_t *rec)
 	std::ostringstream buffer;
 	ofstream myfile;
 	logheader_t hdr = {0};
+	size_t event_size=0;
 
 	buffer << eventpath << "/" << int(rec->logid) ;
 
@@ -213,17 +239,35 @@ uint16_t event_manager::create_log_event(event_record_t *rec)
 	hdr.reportedbylen  = getlen(rec->reportedby);
 	hdr.debugdatalen   = rec->n;
 
-	myfile.open(buffer.str() , ios::out|ios::binary);
-	myfile.write((char*) &hdr, sizeof(hdr));
-	myfile.write((char*) rec->message, hdr.messagelen);
-	myfile.write((char*) rec->severity, hdr.severitylen);
-	myfile.write((char*) rec->association, hdr.associationlen);
-	myfile.write((char*) rec->reportedby, hdr.reportedbylen);
-	myfile.write((char*) rec->p, hdr.debugdatalen);
-	myfile.flush();
-	myfile.close();
+	event_size = sizeof(logheader_t) + \
+			hdr.messagelen     + \
+			hdr.severitylen    + \
+			hdr.associationlen + \
+			hdr.reportedbylen  + \
+			hdr.debugdatalen;
 
-	logcount++;
+	if((event_size + currentsize)  >= maxsize) {
+		syslog(LOG_ERR, "event logger reached maximum capacity, event not logged");
+		rec->logid = 0;
+
+	} else {
+		currentsize += event_size;
+		myfile.open(buffer.str() , ios::out|ios::binary);
+		myfile.write((char*) &hdr, sizeof(hdr));
+		myfile.write((char*) rec->message, hdr.messagelen);
+		myfile.write((char*) rec->severity, hdr.severitylen);
+		myfile.write((char*) rec->association, hdr.associationlen);
+		myfile.write((char*) rec->reportedby, hdr.reportedbylen);
+		myfile.write((char*) rec->p, hdr.debugdatalen);
+		myfile.close();
+
+		if (is_logid_a_log(rec->logid)) {
+			logcount++;
+		} else {
+			cout << "Warning: Event not logged, failed to store data" << endl;
+			rec->logid = 0;
+		}
+	}
 
 	return rec->logid;
 }
@@ -288,11 +332,22 @@ int event_manager::remove(uint16_t logid)
 {
 	std::stringstream buffer;
 	string s;
+	size_t event_size;
 
 	buffer << eventpath << "/" << int(logid);
 
 	s = buffer.str();
+
+	event_size = get_file_size(s);
 	std::remove(s.c_str());
+
+	/* If everything is working correctly deleting all the logs would */ 
+	/* result in currentsize being zero.  But  since size_t is unsigned */
+	/* it's kind of dangerous to  assume life happens perfectly */
+	if (currentsize < event_size)
+		currentsize = 0;
+	else
+		currentsize -= event_size;
 
 	return 0;
 }

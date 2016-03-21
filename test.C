@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <string>
 #include <assert.h>
-
+#include <unistd.h>
 #include "message.H"
 
 using namespace std;
@@ -44,15 +44,17 @@ void setup(void)
 	return;
 }
 
+
 int main(int argc, char *argv[])
 {
 	uint8_t p[] = {0x3, 0x32, 0x34, 0x36};
 	event_record_t rec, *prec;
 	string s;
 
+
 	setup();
 
-	event_manager m(eventspath);
+	event_manager m(eventspath, 0);
 
 	assert(m.get_managed_size() == 0);
 
@@ -99,22 +101,40 @@ int main(int argc, char *argv[])
 	m.remove(1);
 	assert(m.get_managed_size() == 75);
 
-	event_manager q(eventspath);
+	event_manager q(eventspath, 0);
 	assert(q.latest_log_id() == 2);
 	assert(q.log_count() == 1);
 	m.next_log_refresh();
 
 	// Travese log list stuff
 	system("exec rm -r ./events/* 2> /dev/null");
-	event_manager a(eventspath);
+	event_manager a(eventspath, 0);
 	assert(a.next_log() == 0);
 
 	build_event_record(&rec,"Testing list", "Info", "Association", "Test", p, 4);
 	a.create(&rec);
 	a.create(&rec);
 
-	event_manager b(eventspath);
+	event_manager b(eventspath, 0);
 	assert(b.next_log() == 1);
+
+
+	/* Testing the max limits for event logs */
+	setup();
+	event_manager d(eventspath, 75);
+	build_event_record(&rec,"Testing Message1", "Info", "Association", "Test", p, 4);
+	assert(d.create(&rec) == 0);
+
+	event_manager e(eventspath, 76);
+	build_event_record(&rec,"Testing Message1", "Info", "Association", "Test", p, 4);
+	assert(e.create(&rec) == 1);
+
+	setup();
+	event_manager f(eventspath, 149);
+	build_event_record(&rec,"Testing Message1", "Info", "Association", "Test", p, 4);
+	assert(f.create(&rec) == 1);
+	assert(f.create(&rec) == 0);
+
 
 	return 0;
 }

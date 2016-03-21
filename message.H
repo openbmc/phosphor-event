@@ -41,9 +41,11 @@ class event_manager {
 	string   eventpath;
 	DIR      *dirp;
 	uint16_t logcount;
+	size_t   maxsize;
+	size_t   currentsize;
 
 public:
-	event_manager(string path);
+	event_manager(string path, size_t reqmaxsize);
 	~event_manager();
 
 	uint16_t next_log(void);
@@ -63,6 +65,7 @@ private:
 	bool is_file_a_log(string str);
 	uint16_t create_log_event(event_record_t *rec);
 	uint16_t new_log_id(void);
+	bool     is_logid_a_log(uint16_t logid);
 };
 #else
 typedef struct event_manager event_manager;

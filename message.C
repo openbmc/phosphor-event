@@ -180,13 +180,17 @@ inline uint16_t getlen(const char *s)
 
 size_t get_file_size(string fn)
 {
-	ifstream f;
-	size_t len=0;
+	struct stat f_stat;
+	int r;
 
-	f.open(fn, ios::in|ios::binary|ios::ate);
-	len = f.tellg();
-	f.close();
-	return (len);
+	r = stat(fn.c_str(), &f_stat);
+
+	if (r < 0) {
+		fprintf(stderr, "Error getting log size: %s\n", strerror(-r));
+		return 0;
+	}
+
+	return (f_stat.st_size);
 }
 
 

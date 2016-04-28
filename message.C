@@ -178,15 +178,23 @@ inline uint16_t getlen(const char *s)
 }
 
 
+/* If everything is working correctly, return file size, */
+/* Otherwise return 0 */
 size_t get_file_size(string fn)
 {
-	ifstream f;
-	size_t len=0;
+	struct stat f_stat;
+	int r = -1;
 
-	f.open(fn, ios::in|ios::binary|ios::ate);
-	len = f.tellg();
-	f.close();
-	return (len);
+	r = stat(fn.c_str(), &f_stat);
+
+	if (r < 0) {
+		fprintf(stderr, "Error get_file_size() for %s, %s\n",
+				fn.c_str(),
+				strerror(errno));
+		return 0;
+	}
+
+	return (f_stat.st_size);
 }
 
 

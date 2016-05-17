@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
 
 	setup();
 
-	event_manager m(eventspath, 0);
+	event_manager m(eventspath, 0, 0);
 
 	assert(m.get_managed_size() == 0);
 
@@ -101,39 +101,84 @@ int main(int argc, char *argv[])
 	m.remove(1);
 	assert(m.get_managed_size() == 75);
 
-	event_manager q(eventspath, 0);
+	event_manager q(eventspath, 0, 0);
 	assert(q.latest_log_id() == 2);
 	assert(q.log_count() == 1);
 	m.next_log_refresh();
 
 	// Travese log list stuff
 	system("exec rm -r ./events/* 2> /dev/null");
-	event_manager a(eventspath, 0);
+	event_manager a(eventspath, 0, 0);
 	assert(a.next_log() == 0);
 
 	build_event_record(&rec,"Testing list", "Info", "Association", "Test", p, 4);
 	a.create(&rec);
 	a.create(&rec);
 
-	event_manager b(eventspath, 0);
+	event_manager b(eventspath, 0, 0);
 	assert(b.next_log() == 1);
 
 
 	/* Testing the max limits for event logs */
 	setup();
-	event_manager d(eventspath, 75);
+	event_manager d(eventspath, 75, 0);
 	build_event_record(&rec,"Testing Message1", "Info", "Association", "Test", p, 4);
 	assert(d.create(&rec) == 0);
 
-	event_manager e(eventspath, 76);
+	event_manager e(eventspath, 76, 0);
 	build_event_record(&rec,"Testing Message1", "Info", "Association", "Test", p, 4);
 	assert(e.create(&rec) == 1);
 
 	setup();
-	event_manager f(eventspath, 149);
+	event_manager f(eventspath, 149, 0);
 	build_event_record(&rec,"Testing Message1", "Info", "Association", "Test", p, 4);
 	assert(f.create(&rec) == 1);
 	assert(f.create(&rec) == 0);
+
+
+	/* Testing the max limits for event logs */
+	setup();
+	event_manager g(eventspath, 300, 1);
+	build_event_record(&rec,"Testing Message1", "Info", "Association", "Test", p, 4);
+	assert(g.create(&rec) == 1);
+	assert(g.create(&rec) == 0);
+	assert(g.log_count() == 1);
+
+	setup();
+	event_manager h(eventspath, 600, 3);
+	build_event_record(&rec,"Testing Message1", "Info", "Association", "Test", p, 4);
+	assert(h.create(&rec) == 1);
+	assert(h.create(&rec) == 2);
+	assert(h.create(&rec) == 3);
+	assert(h.create(&rec) == 0);
+	assert(h.log_count() == 3);
+
+	/* Create an abundence of logs, then restart with a limited set  */
+	/* You should not be able to create new logs until the log count */
+	/* dips below the request number                                 */
+	setup();
+	event_manager i(eventspath, 600, 3);
+	build_event_record(&rec,"Testing Message1", "Info", "Association", "Test", p, 4);
+	assert(i.create(&rec) == 1);
+	assert(i.create(&rec) == 2);
+	assert(i.create(&rec) == 3);
+	assert(i.create(&rec) == 0);
+	assert(i.log_count() == 3);
+	event_manager j(eventspath, 600, 1);
+	assert(j.log_count() == 3);
+	assert(j.create(&rec) == 0);
+	assert(j.log_count() == 3);
+
+	/* Delete logs to dip below the requested limit */
+	assert(j.remove(3) == 0);
+	assert(j.log_count() == 2);
+	assert(j.create(&rec) == 0);
+	assert(j.remove(2) == 0);
+	assert(j.log_count() == 1);
+	assert(j.create(&rec) == 0);
+	assert(j.remove(1) == 0);
+	assert(j.log_count() == 0);
+	assert(j.create(&rec) == 7);
 
 
 	return 0;

@@ -54,19 +54,23 @@ int load_existing_events(event_manager *em)
 void print_usage(void)
 {
 	cout << "[-s <x>] : Maximum bytes to use for event logger"  << endl;
+	cout << "[-t <x>] : Limit total number of logs (will ignore newer)"  << endl;	
 	return;
 }
 
 
 int main(int argc, char *argv[])
 {
-	unsigned long maxsize=0;
+	unsigned long maxsize=0, maxlogs=0;
 	int rc, c;
 
-	while ((c = getopt (argc, argv, "s:")) != -1)
+	while ((c = getopt (argc, argv, "s:t:")) != -1)
 		switch (c) {
 			case 's':
 				maxsize =  strtoul(optarg, NULL, 10);
+				break;
+			case 't':
+				maxlogs =  strtoul(optarg, NULL, 10);
 				break;
 			case 'h':
 			case '?':
@@ -76,7 +80,7 @@ int main(int argc, char *argv[])
 
 
 	cout << maxsize <<endl;
-	event_manager em(path_to_messages, maxsize);
+	event_manager em(path_to_messages, maxsize, maxlogs);
 
 
 	rc = build_bus(&em);

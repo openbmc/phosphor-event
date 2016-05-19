@@ -41,11 +41,12 @@ class event_manager {
 	string   eventpath;
 	DIR      *dirp;
 	uint16_t logcount;
+	uint16_t maxlogs;
 	size_t   maxsize;
 	size_t   currentsize;
 
 public:
-	event_manager(string path, size_t reqmaxsize);
+	event_manager(string path, size_t reqmaxsize, uint16_t reqmaxlogs);
 	~event_manager();
 
 	uint16_t next_log(void);

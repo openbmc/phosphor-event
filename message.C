@@ -33,7 +33,7 @@ struct logheader_t {
 size_t get_file_size(string fn);
 
 
-event_manager::event_manager(string path, size_t reqmaxsize)
+event_manager::event_manager(string path, size_t reqmaxsize, uint16_t reqmaxlogs)
 {
 	uint16_t x;
 	eventpath = path;
@@ -41,10 +41,14 @@ event_manager::event_manager(string path, size_t reqmaxsize)
 	dirp = NULL;
 	logcount = 0;
 	maxsize = -1;
+	maxlogs = -1;
 	currentsize = 0;
 
 	if (reqmaxsize)
 		maxsize = reqmaxsize;
+
+	if (reqmaxlogs)
+		maxlogs = reqmaxlogs;
 
 	// examine the files being managed and advance latestid to that value
 	while ( (x = next_log()) ) {
@@ -258,6 +262,10 @@ uint16_t event_manager::create_log_event(event_record_t *rec)
 		syslog(LOG_ERR, "event logger reached maximum capacity, event not logged");
 		rec->logid = 0;
 
+	} else if (logcount >= maxlogs) {
+		syslog(LOG_ERR, "event logger reached maximum log events, event not logged");
+		rec->logid = 0;
+
 	} else {
 		currentsize += event_size;
 		myfile.open(buffer.str() , ios::out|ios::binary);
@@ -332,7 +340,6 @@ void event_manager::close(event_record_t *rec)
 	delete[] rec->p;
 	delete rec;
 
-	logcount--;
 	return ;
 }
 
@@ -356,6 +363,9 @@ int event_manager::remove(uint16_t logid)
 		currentsize = 0;
 	else
 		currentsize -= event_size;
+
+	if (logcount > 0)
+		logcount--;
 
 	return 0;
 }

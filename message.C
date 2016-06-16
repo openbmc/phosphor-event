@@ -42,7 +42,7 @@ event_manager::event_manager(string path, size_t reqmaxsize, uint16_t reqmaxlogs
 	logcount = 0;
 	maxsize = -1;
 	maxlogs = -1;
-	currentsize = 0;
+	currentsize = get_managed_size();
 
 	if (reqmaxsize)
 		maxsize = reqmaxsize;

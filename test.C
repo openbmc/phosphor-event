@@ -180,6 +180,20 @@ int main(int argc, char *argv[])
 	assert(j.log_count() == 0);
 	assert(j.create(&rec) == 7);
 
+	/* Create an abundence of logs, then restart with a limited set  */
+	/* You should not be able to create new logs until the log size  */
+	/* dips below the request number                                 */
+	setup();
+	event_manager k(eventspath, 600, 100);
+	build_event_record(&rec,"Testing Message1", "Info", "Association", "Test", p, 4);
+	assert(k.create(&rec) == 1);
+	assert(k.create(&rec) == 2);
+	/* Now we have consumed 150 bytes */
+	event_manager l(eventspath, 151, 100);
+	assert(l.create(&rec) == 0);
+	assert(l.remove(2) == 0);
+	assert(l.create(&rec) == 4);
+
 
 	return 0;
 }

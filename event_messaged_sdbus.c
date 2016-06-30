@@ -232,9 +232,10 @@ static int prop_message_dd(sd_bus *bus,
 //  ay - Detailed data - developer debug information
 //
 /////////////////////////////////////////////////////////////
-static int method_accept_host_message(sd_bus_message *m,
+static int accept_message(sd_bus_message *m,
 				      void *userdata,
-				      sd_bus_error *ret_error)
+				      sd_bus_error *ret_error,
+				      char *reportedby)
 {
 	char *message, *severity, *association;
 	size_t   n = 4;
@@ -259,7 +260,7 @@ static int method_accept_host_message(sd_bus_message *m,
 	rec.message     = (char*) message;
 	rec.severity    = (char*) severity;
 	rec.association = (char*) association;
-	rec.reportedby  = (char*) "Host";
+	rec.reportedby  = reportedby;
 	rec.p           = (uint8_t*) p;
 	rec.n           = n;
 
@@ -273,7 +274,19 @@ static int method_accept_host_message(sd_bus_message *m,
 	return sd_bus_reply_method_return(m, "q", logid);
 }
 
+static int method_accept_host_message(sd_bus_message *m,
+				      void *userdata,
+				      sd_bus_error *ret_error)
+{
+	return accept_message(m, userdata, ret_error, "Host");
+}
 
+static int method_accept_bmc_message(sd_bus_message *m,
+				      void *userdata,
+				      sd_bus_error *ret_error)
+{
+	return accept_message(m, userdata, ret_error, "BMC");
+}
 static int method_accept_test_message(sd_bus_message *m,
 				      void *userdata,
 				      sd_bus_error *ret_error)
@@ -357,6 +370,7 @@ static int method_deletelog(sd_bus_message *m, void *userdata, sd_bus_error *ret
 static const sd_bus_vtable recordlog_vtable[] = {
 	SD_BUS_VTABLE_START(0),
 	SD_BUS_METHOD("acceptHostMessage", "sssay", "q", method_accept_host_message, SD_BUS_VTABLE_UNPRIVILEGED),
+	SD_BUS_METHOD("acceptBMCMessage", "sssay", "q", method_accept_bmc_message, SD_BUS_VTABLE_UNPRIVILEGED),
 	SD_BUS_METHOD("acceptTestMessage", NULL, "q", method_accept_test_message, SD_BUS_VTABLE_UNPRIVILEGED),
 	SD_BUS_METHOD("clear", NULL, "q", method_clearall, SD_BUS_VTABLE_UNPRIVILEGED),
 	SD_BUS_VTABLE_END

@@ -10,7 +10,7 @@
 
 /*****************************************************************************/
 /* This set of functions are responsible for interactions with events over   */
-/* dbus.  Logs come in a couple of different ways...                         */ 
+/* dbus.  Logs come in a couple of different ways...                         */
 /*     1) From the calls from acceptHostMessage, acceptTestMessage           */
 /*     2) At startup and logs that exist alreafy are re-added                */
 /*                                                                           */
@@ -61,16 +61,16 @@ static event_record_t* message_record_open(event_manager *em, uint16_t logid)
 	int r = 0;
 	event_record_t *rec;
 
-	// A simple caching technique because each 
+	// A simple caching technique because each
 	// property needs to extract data from the
-	// same data blob.  
+	// same data blob.
 	if (gCachedRec == NULL) {
 		if (message_load_log(em, logid, &rec)) {
 			gCachedRec = rec;
 			return gCachedRec;
-		} else 
+		} else
 			return NULL;
-	} 
+	}
 
 	if (logid == gCachedRec->logid) {
 		r = 1;
@@ -225,16 +225,17 @@ static int prop_message_dd(sd_bus *bus,
 /////////////////////////////////////////////////////////////
 // Receives an array of bytes as an esel error log
 // returns the messageid in 2 byte format
-//  
+//
 //  S1 - Message - Simple sentence about the fail
 //  S2 - Severity - How bad of a problem is this
 //  S3 - Association - sensor path
 //  ay - Detailed data - developer debug information
 //
 /////////////////////////////////////////////////////////////
-static int method_accept_host_message(sd_bus_message *m,
-				      void *userdata,
-				      sd_bus_error *ret_error)
+static int accept_message(sd_bus_message *m,
+				void *userdata,
+				sd_bus_error *ret_error,
+				char* reportedby)
 {
 	char *message, *severity, *association;
 	size_t   n = 4;
@@ -259,7 +260,7 @@ static int method_accept_host_message(sd_bus_message *m,
 	rec.message     = (char*) message;
 	rec.severity    = (char*) severity;
 	rec.association = (char*) association;
-	rec.reportedby  = (char*) "Host";
+	rec.reportedby  = reportedby;
 	rec.p           = (uint8_t*) p;
 	rec.n           = n;
 
@@ -267,10 +268,24 @@ static int method_accept_host_message(sd_bus_message *m,
 
 	logid = message_create_new_log_event(em, &rec);
 
-	if (logid) 
+	if (logid)
 		r = send_log_to_dbus(em, logid, rec.association);
 
 	return sd_bus_reply_method_return(m, "q", logid);
+}
+
+static int method_accept_host_message(sd_bus_message *m,
+				      void *userdata,
+				      sd_bus_error *ret_error)
+{
+	return accept_message(m, userdata, ret_error, "Host");
+}
+
+static int method_accept_bmc_message(sd_bus_message *m,
+				      void *userdata,
+				      sd_bus_error *ret_error)
+{
+	return accept_message(m, userdata, ret_error, "BMC");
 }
 
 
@@ -357,13 +372,14 @@ static int method_deletelog(sd_bus_message *m, void *userdata, sd_bus_error *ret
 static const sd_bus_vtable recordlog_vtable[] = {
 	SD_BUS_VTABLE_START(0),
 	SD_BUS_METHOD("acceptHostMessage", "sssay", "q", method_accept_host_message, SD_BUS_VTABLE_UNPRIVILEGED),
+	SD_BUS_METHOD("acceptBMCMessage", "sssay", "q", method_accept_bmc_message, SD_BUS_VTABLE_UNPRIVILEGED),
 	SD_BUS_METHOD("acceptTestMessage", NULL, "q", method_accept_test_message, SD_BUS_VTABLE_UNPRIVILEGED),
 	SD_BUS_METHOD("clear", NULL, "q", method_clearall, SD_BUS_VTABLE_UNPRIVILEGED),
 	SD_BUS_VTABLE_END
 };
 
 static const sd_bus_vtable log_vtable[] = {
-	SD_BUS_VTABLE_START(0),   
+	SD_BUS_VTABLE_START(0),
 	SD_BUS_PROPERTY("message",     "s",  prop_message,    0, SD_BUS_VTABLE_PROPERTY_CONST),
 	SD_BUS_PROPERTY("severity",    "s",  prop_message,    0, SD_BUS_VTABLE_PROPERTY_CONST),
 	SD_BUS_PROPERTY("reported_by", "s",  prop_message,    0, SD_BUS_VTABLE_PROPERTY_CONST),
@@ -398,7 +414,7 @@ static int remove_log_from_dbus(messageEntry_t *p)
 	if (r < 0) {
 		fprintf(stderr, "Failed to emit the delete signal %s\n", strerror(-r));
 		return -1;
-	}	
+	}
 	sd_bus_slot_unref(p->messageslot);
 	sd_bus_slot_unref(p->deleteslot);
 
@@ -528,8 +544,8 @@ int build_bus(event_manager *em)
 	r = sd_bus_request_name(bus, "org.openbmc.records.events", 0);
 	if (r < 0) {
 		fprintf(stderr, "Error requesting name: %s\n", strerror(-r));
-	}	
-	
+	}
+
 	/* You want to add an object manager to support deleting stuff  */
 	/* without it, dbus can show interfaces that no longer exist */
 	r = sd_bus_add_object_manager(bus, NULL, event_path);

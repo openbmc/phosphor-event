@@ -99,11 +99,11 @@ static int prop_message_assoc(sd_bus *bus,
 	messageEntry_t *m = (messageEntry_t*) userdata;
 	event_record_t *rec;
 	char *p;
-	char *token, *saveptr;
+	char *token;
 
 	rec = message_record_open(m->em, m->logid);
 	if (!rec) {
-		fprintf(stderr,"Warning missing event log for %lx\n", m->logid);
+		fprintf(stderr,"Warning missing event log for %zx\n", m->logid);
 		sd_bus_error_set(error,
 			SD_BUS_ERROR_FILE_NOT_FOUND,
 			"Could not find log file");
@@ -167,7 +167,7 @@ static int prop_message(sd_bus *bus,
 
 	rec = message_record_open(m->em, m->logid);
 	if (!rec) {
-		fprintf(stderr,"Warning missing event log for %lx\n", m->logid);
+		fprintf(stderr,"Warning missing event log for %zx\n", m->logid);
 		sd_bus_error_set(error,
 			SD_BUS_ERROR_FILE_NOT_FOUND,
 			"Could not find log file");
@@ -293,7 +293,6 @@ static int method_accept_test_message(sd_bus_message *m,
 {
 	//  Random debug data including, ascii, null, >signed int, max
 	uint8_t p[] = {0x30, 0x00, 0x13, 0x7F, 0x88, 0xFF};
-	char *s;
 	uint16_t logid;
 	event_record_t rec;
 	event_manager *em = (event_manager *) userdata;
@@ -327,11 +326,10 @@ static int method_clearall(sd_bus_message *m, void *userdata, sd_bus_error *ret_
 	uint16_t logid;
 	char buffer[32];
 	int r;
-	sd_bus_message *reply;
 
 	message_refresh_events(em);
 
-	while (logid = message_next_event(em)) {
+	while ((logid = message_next_event(em))) {
 		snprintf(buffer, sizeof(buffer),
 			"%s/%d", event_path, logid);
 
@@ -404,7 +402,7 @@ static int remove_log_from_dbus(messageEntry_t *p)
 	int r;
 	char buffer[32];
 
-	snprintf(buffer, sizeof(buffer), "%s/%lu", event_path, p->logid);
+	snprintf(buffer, sizeof(buffer), "%s/%zu", event_path, p->logid);
 
 	printf("Attempting to delete %s\n", buffer);
 

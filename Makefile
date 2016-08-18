@@ -6,6 +6,7 @@ EXE_OBJS  = $(EXE).o message.o event_messaged_sdbus.o
 
 OBJS_CHECK = test.o message.o
 
+CFLAGS += -Wall
 CPPFLAGS  += -g -fpic -Wall -std=c++11
 
 DEPPKGS = libsystemd

@@ -7,7 +7,7 @@ EXE_OBJS  = $(EXE).o message.o event_messaged_sdbus.o
 OBJS_CHECK = test.o message.o
 
 CFLAGS += -Wall -Werror
-CPPFLAGS  += -g -fpic -Wall -Werror -std=c++11
+CXXFLAGS  += -g -fpic -Wall -Werror -std=c++11
 
 DEPPKGS = libsystemd
 INCLUDES += $(shell pkg-config --cflags $(DEPPKGS)) 
@@ -21,7 +21,7 @@ all: $(EXE)
 	$(CC) -c $< $(CFLAGS) $(INCLUDES) -o $@
 
 %.o : %.C
-	$(CXX) -c $< $(CPPFLAGS) -o $@
+	$(CXX) -c $< $(CXXFLAGS) -o $@
 
 
 $(EXE): $(EXE_OBJS)

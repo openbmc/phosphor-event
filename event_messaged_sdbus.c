@@ -4,7 +4,7 @@
 #include <errno.h>
 #include <stddef.h>
 #include <systemd/sd-bus.h>
-#include "message.H"
+#include "message.hpp"
 #include "event_messaged_sdbus.h"
 #include <syslog.h>
 

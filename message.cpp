@@ -8,7 +8,7 @@
 #include <sstream>
 #include <sys/stat.h>
 #include <cstring>
-#include "message.H"
+#include "message.hpp"
 #include <time.h>
 #include <stddef.h>
 #include <cstdio>

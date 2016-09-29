@@ -1,5 +1,5 @@
 #include <iostream>
-#include "message.H"
+#include "message.hpp"
 #include "event_messaged_sdbus.h"
 #include <string>
 #include <unistd.h>

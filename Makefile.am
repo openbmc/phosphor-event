@@ -9,4 +9,4 @@ phosphor_eventd_SOURCES = \
 phosphor_eventd_LDFLAGS = $(SYSTEMD_LIBS)
 phosphor_eventd_CFLAGS = $(SYSTEMD_CFLAGS)
 
-#SUBDIRS = test
+SUBDIRS = test

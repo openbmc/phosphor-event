@@ -10,4 +10,5 @@ utest_CXXFLAGS = $(PTHREAD_CFLAGS)
 utest_LDFLAGS = -lgtest_main -lgtest $(PTHREAD_LIBS) $(OESDK_TESTCASE_FLAGS)
 utest_SOURCES = utest.cpp
 utest_LDADD = $(top_builddir)/sample.o \
-	      $(top_builddir)/message.o
+	      $(top_builddir)/message.o \
+	      $(top_builddir)/setup.o
